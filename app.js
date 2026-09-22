@@ -135,11 +135,45 @@ function firebasePath(collection){return ['coraldarUsers',OWNER_UID,collection]}
 async function cloudSet(collection,record){if(!firebase||!currentUser||currentUser.uid!==OWNER_UID)return;try{await firebase.setDoc(firebase.doc(firebase.db,...firebasePath(collection),record.id),record)}catch(err){console.error(err);toast('Saved locally; sync failed')}}
 async function cloudDelete(collection,id){if(!firebase||!currentUser||currentUser.uid!==OWNER_UID)return;try{await firebase.deleteDoc(firebase.doc(firebase.db,...firebasePath(collection),id))}catch(err){console.error(err);toast('Deleted locally; sync failed')}}
 function startSnapshots(){unsubscribers.forEach(fn=>fn());unsubscribers=[];for(const collection of COLLECTIONS){const unsub=firebase.onSnapshot(firebase.collection(firebase.db,...firebasePath(collection)),snap=>{const remote=snap.docs.map(d=>({id:d.id,...d.data()})),next=normalizeData({...data,[collection]:remote})[collection],merged=new Map(data[collection].map(item=>[item.id,item]));next.forEach(item=>merged.set(item.id,item));data[collection]=[...merged.values()];saveLocal();if(!editorDialog.open&&!settingsDialog.open)render()},err=>console.error('snapshot',collection,err));unsubscribers.push(unsub)}}
-async function initFirebase(){try{firebase=await window.CoralDarFirebase.create(FIREBASE_CONFIG);firebase.onAuthStateChanged(firebase.auth,user=>{if(!user){currentUser=null;unsubscribers.forEach(fn=>fn());unsubscribers=[];clearPrivateLocal();$('#app').hidden=true;$('#authGate').hidden=false;if(!$('#authStatus').textContent.includes('UID:'))$('#authStatus').textContent='Sign in with the owner account to continue.';return}if(!OWNER_UID){currentUser=null;unsubscribers.forEach(fn=>fn());unsubscribers=[];clearPrivateLocal();$('#app').hidden=true;$('#authGate').hidden=false;$('#authStatus').textContent=`Firebase sign-in succeeded. Your CoralDar owner UID is: ${user.uid} — send this UID to me so I can lock the app to your account.`;firebase.signOut(firebase.auth);return}if(user.uid!==OWNER_UID){firebase.signOut(firebase.auth);$('#authStatus').textContent=`This Google account is not authorized for CoralDar. Signed-in UID: ${user.uid}`;return}currentUser=user;data=loadData();$('#authGate').hidden=true;$('#app').hidden=false;render();startSnapshots()})}catch(err){console.error(err);$('#authStatus').textContent=`Could not initialize Firebase${err?.code?` (${err.code})`:''}. ${err?.message||'Check your connection.'}`}}
-$('#signInButton').onclick=async()=>{if(!firebase)return;const button=$('#signInButton');button.disabled=true;try{await firebase.signInWithPopup(firebase.auth,new firebase.GoogleAuthProvider())}catch(err){console.error(err);const code=err?.code||'unknown-error';$('#authStatus').textContent=code==='auth/unauthorized-domain'?'This GitHub Pages domain is not authorized. Add the hostname under Firebase Authentication → Settings → Authorized domains.':`Sign-in did not finish (${code}). ${err?.message||''}`.trim()}finally{button.disabled=false}};
+async function initFirebase(){
+  try{
+    const [appMod,authMod,firestoreMod]=await Promise.all([
+      import('./vendor/firebase/12.18.0/firebase-app.js'),
+      import('./vendor/firebase/12.18.0/firebase-auth.js'),
+      import('./vendor/firebase/12.18.0/firebase-firestore.js')
+    ]);
+    const app=appMod.initializeApp(FIREBASE_CONFIG);
+    const auth=authMod.initializeAuth(app,{persistence:authMod.browserLocalPersistence,popupRedirectResolver:authMod.browserPopupRedirectResolver});
+    firebase={
+      auth,
+      db:firestoreMod.getFirestore(app),
+      doc:firestoreMod.doc,
+      collection:firestoreMod.collection,
+      onSnapshot:firestoreMod.onSnapshot,
+      setDoc:firestoreMod.setDoc,
+      deleteDoc:firestoreMod.deleteDoc,
+      GoogleAuthProvider:authMod.GoogleAuthProvider,
+      onAuthStateChanged:authMod.onAuthStateChanged,
+      signInWithPopup:authMod.signInWithPopup,
+      signOut:authMod.signOut
+    };
+    firebase.onAuthStateChanged(firebase.auth,user=>{
+      if(!user){currentUser=null;unsubscribers.forEach(fn=>fn());unsubscribers=[];clearPrivateLocal();$('#app').hidden=true;$('#authGate').hidden=false;if(!$('#authStatus').textContent.includes('UID:'))$('#authStatus').textContent='Sign in with the owner account to continue.';return}
+      if(!OWNER_UID){currentUser=null;unsubscribers.forEach(fn=>fn());unsubscribers=[];clearPrivateLocal();$('#app').hidden=true;$('#authGate').hidden=false;$('#authStatus').textContent=`Firebase sign-in succeeded. Your CoralDar owner UID is: ${user.uid} — send this UID to me so I can lock the app to your account.`;firebase.signOut(firebase.auth);return}
+      if(user.uid!==OWNER_UID){firebase.signOut(firebase.auth);$('#authStatus').textContent=`This Google account is not authorized for CoralDar. Signed-in UID: ${user.uid}`;return}
+      currentUser=user;data=loadData();$('#authGate').hidden=true;$('#app').hidden=false;render();startSnapshots();
+    });
+  }catch(err){console.error(err);$('#authStatus').textContent=`Could not initialize Firebase${err?.code?` (${err.code})`:''}. ${err?.message||'Check your connection.'}`}
+}
+$('#signInButton').onclick=async()=>{if(!firebase)return;const button=$('#signInButton');button.disabled=true;try{const provider=new firebase.GoogleAuthProvider();provider.setCustomParameters({prompt:'select_account'});await firebase.signInWithPopup(firebase.auth,provider)}catch(err){console.error(err);const code=err?.code||'unknown-error';const messages={
+  'auth/unauthorized-domain':'This GitHub Pages domain is not authorized. Add MayEyeElegize.github.io under Firebase Authentication → Settings → Authorized domains.',
+  'auth/popup-blocked':'The browser blocked the Google sign-in popup. Allow popups for this site and try again.',
+  'auth/popup-closed-by-user':'The Google sign-in window was closed before sign-in finished.',
+  'auth/operation-not-allowed':'Google sign-in is not enabled for this Firebase project.'
+};$('#authStatus').textContent=messages[code]||`Sign-in did not finish (${code}). ${err?.message||''}`.trim()}finally{button.disabled=false}};
 async function signOutUser(){if(firebase)await firebase.signOut(firebase.auth);clearPrivateLocal();settingsDialog.close()}
 
-function waitFirebase(){if(window.CoralDarFirebase)return initFirebase();window.addEventListener('coraldar-firebase-ready',initFirebase,{once:true})}
+function waitFirebase(){initFirebase()}
 if('serviceWorker' in navigator)navigator.serviceWorker.getRegistrations().then(regs=>Promise.all(regs.map(r=>r.unregister()))).catch(()=>{});
 waitFirebase();render();
 
