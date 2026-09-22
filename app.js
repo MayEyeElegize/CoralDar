@@ -2,7 +2,7 @@
 
 const RELEASE = 2;
 const TANK_GALLONS = 32;
-const OWNER_UID = ''; // Bootstrap only: set to CoralDar Firebase Authentication UID after first sign-in.
+const OWNER_UID = 'zZQ1UmFVKyMjmu4PvhVIoaqwPU93';
 const FIREBASE_CONFIG = {apiKey:'AIzaSyBJWUH4WUZ5viWuj5XgXhDgSpdsneNhFUQ',authDomain:'coraldar-d348f.firebaseapp.com',projectId:'coraldar-d348f',storageBucket:'coraldar-d348f.firebasestorage.app',messagingSenderId:'111139321454',appId:'1:111139321454:web:2d4a1d61aec5a110c2987f'};
 const STORAGE_KEY = 'coraldar-v1';
 const TAB_KEY = 'coraldar-active-tab';
