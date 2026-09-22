@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0c2022">
+  <meta name="application-name" content="CoralDar">
+  <meta name="apple-mobile-web-app-title" content="CoralDar">
+  <meta name="coraldar-release" content="1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://res.cloudinary.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com; frame-src https://accounts.google.com https://*.firebaseapp.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <link rel="manifest" href="manifest.webmanifest?v=1">
+  <link rel="icon" href="app-icon.png?v=1" type="image/png">
+  <link rel="apple-touch-icon" href="app-icon.png?v=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500&display=swap" rel="stylesheet">
+  <title>CoralDar</title>
+  <link rel="stylesheet" href="styles.css?v=1">
+</head>
+<body>
+  <div id="authGate" class="auth-gate">
+    <div class="auth-card">
+      <img src="app-icon.png?v=1" alt="" class="auth-icon">
+      <h1>CoralDar</h1>
+      <p>Your private reef journal.</p>
+      <button id="signInButton" class="button primary">Sign in with Google</button>
+      <p id="authStatus" class="muted">Sign in with the owner account to continue.</p>
+    </div>
+  </div>
+
+  <div id="app" class="app" hidden>
+    <header class="top-header">
+      <h1>CoralDar</h1>
+      <nav id="mainNav" class="main-nav" aria-label="Primary"></nav>
+      <div class="header-actions">
+        <button id="primaryAction" class="button primary">Add Data</button>
+        <button id="moreButton" class="icon-button" aria-label="Open settings" title="Settings">•••</button>
+      </div>
+    </header>
+
+    <main id="main"></main>
+  </div>
+
+  <dialog id="editorDialog" class="dialog"><form id="editorForm" class="dialog-inner"></form></dialog>
+  <dialog id="settingsDialog" class="dialog"><div class="dialog-inner" id="settingsContent"></div></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="firebase-init.js?v=1"></script>
+  <script src="app.js?v=1" defer></script>
+</body>
+</html>
