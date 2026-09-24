@@ -1,0 +1,13 @@
+rules_version = '2';
+
+// CoralDar is a single-owner app. Only the owner's account can read or write,
+// and only inside their own folder. Everything else is denied.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /coraldarUsers/{uid}/{document=**} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == uid
+        && uid == 'zZQ1UmFVKyMjmu4PvhVIoaqwPU93';
+    }
+  }
+}
